@@ -444,6 +444,139 @@ nav button .ic{width:20px;height:20px;flex:none}
 .aviso-sql code{background:#00000030;padding:1px 6px;border-radius:4px}
 .contador{color:var(--apagado);font-size:13px}
 @media (max-width:560px){.rank.ancho .fila-r{grid-template-columns:110px 1fr auto}.dias{gap:2px}}
+
+/* ===== v3: pulido visual (paleta neutra fría, tarjetas compactas, pipeline legible) ===== */
+:root{
+  --verde:#f3f4f6;--verde-2:#ffffff;--verde-3:#e3e5ea;--linea:#e6e8ec;
+  --texto:#14161a;--blanco:#14161a;--apagado:#5d6471;--velo-col:#eceef2;--hover:#0f172a0a;
+  --suave:color-mix(in srgb,var(--marca) 8%,transparent);
+  --c-corrientes:#3b82f6;--c-posadas:#0ea5a4;--c-obera:#d89a00;--c-eldorado:#8b5cf6;
+}
+:root[data-tema=dark]{
+  --verde:#0f1115;--verde-2:#171a20;--verde-3:#2a2e37;--linea:#262a32;
+  --texto:#eef0f3;--blanco:#ffffff;--apagado:#9aa1ad;--velo-col:#13161b;--hover:#ffffff0a;
+  --c-obera:#f0b429;--c-eldorado:#a78bfa;
+}
+body{letter-spacing:-.003em}
+h2{font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0}
+.etq,th,.panel h3,.res h4,.kpi .etq{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:600;color:var(--apagado)}
+th{padding:11px 14px;background:color-mix(in srgb,var(--velo-col) 60%,transparent)}
+.kpi,.panel,.tabla,.res .bloque,.cal{box-shadow:none;border-color:var(--linea);border-radius:14px}
+.kpi{padding:16px 18px}
+.kpi .n{font-size:30px;font-weight:700;letter-spacing:-.025em}
+.kpi small{font-size:12.5px;margin-top:4px}
+.wrap>main{padding-top:20px}
+.fila{margin-bottom:18px;gap:12px 20px}
+.fila .sub{max-width:52ch}
+
+/* barra lateral */
+@media (min-width:900px){
+  .wrap{grid-template-columns:232px minmax(0,1fr)}
+  .wrap>header{padding:22px 12px}
+  .wrap>header nav button{height:38px;border-radius:8px;color:var(--apagado);font-weight:500}
+  .wrap>header nav button[aria-selected=true]{background:var(--velo-col);color:var(--texto);font-weight:600;box-shadow:inset 3px 0 0 var(--marca)}
+  .wrap>header nav button[aria-selected=true] .ic{color:var(--marca)}
+}
+
+/* pestañas de sucursal */
+.tabs-suc{display:inline-flex;flex-wrap:wrap;gap:2px;background:var(--velo-col);padding:4px;border-radius:12px;margin:0 0 16px}
+.tab-suc{border:0;background:transparent;color:var(--apagado);border-radius:9px;padding:7px 12px;font:600 13px var(--f-body);gap:7px}
+.tab-suc:hover{color:var(--texto)}
+.tab-suc .n{background:transparent;color:var(--apagado);padding:0;font-size:12px;font-weight:600}
+.tab-suc.on{background:var(--verde-2);color:var(--texto);box-shadow:0 1px 2px #0f172a1f,0 0 0 1px var(--linea)}
+.tab-suc.on .n{background:transparent;color:var(--texto)}
+.tab-suc[data-suc="corrientes"]::before,.tab-suc[data-suc="posadas"]::before,.tab-suc[data-suc="obera"]::before,.tab-suc[data-suc="eldorado"]::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--sc)}
+.tab-suc[data-suc="corrientes"]{--sc:var(--c-corrientes)}.tab-suc[data-suc="posadas"]{--sc:var(--c-posadas)}.tab-suc[data-suc="obera"]{--sc:var(--c-obera)}.tab-suc[data-suc="eldorado"]{--sc:var(--c-eldorado)}
+
+/* tablero */
+.tablero{grid-auto-columns:minmax(286px,1fr);gap:12px;scroll-snap-type:x proximity;padding-bottom:14px;scrollbar-width:thin}
+.col,.col[data-etapa]{background:var(--velo-col);border:0;border-radius:14px;padding:10px;gap:8px;min-height:180px;scroll-snap-align:start}
+.col>h3{margin:2px 4px 6px;font:600 13.5px var(--f-body);letter-spacing:0;text-transform:none;color:var(--texto)}
+.col>h3 .ct{background:transparent;color:var(--apagado);font-weight:600;padding:0;margin-left:auto}
+.col[data-etapa="derivada"]>h3,.col[data-etapa="mayorista"]>h3{color:var(--texto)}
+.col[data-etapa="derivada"]>h3 .pt{background:var(--marca)}
+.col[data-etapa="mayorista"]>h3 .pt{background:#3b82f6}
+.vacio-col{border:0;padding:20px 6px;font-size:12.5px;opacity:.8}
+.col.sobre{outline:2px dashed var(--marca);outline-offset:-3px}
+
+/* tarjeta */
+.tarjeta,.col[data-etapa] .tarjeta{background:var(--verde-2);border:1px solid var(--linea);border-left:1px solid var(--linea);border-radius:12px;padding:12px 14px;gap:8px;box-shadow:0 1px 1px #0f172a08;transition:border-color .15s,box-shadow .15s}
+.tarjeta:hover{border-color:color-mix(in srgb,var(--apagado) 55%,var(--linea));box-shadow:0 2px 8px #0f172a12}
+.tarjeta.est-derivada,.col[data-etapa="derivada"] .tarjeta{box-shadow:inset 3px 0 0 var(--marca),0 1px 1px #0f172a08}
+.tarjeta.est-mayorista,.col[data-etapa="mayorista"] .tarjeta{box-shadow:inset 3px 0 0 #3b82f6,0 1px 1px #0f172a08}
+.t-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.t-cab b{font-size:14.5px;font-weight:650;letter-spacing:-.01em;line-height:1.3}
+.t-cab time{font-size:12px;color:var(--apagado);white-space:nowrap;flex:none}
+.t-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.suc{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--texto)}
+.suc i{width:8px;height:8px;border-radius:50%;background:var(--sc,var(--apagado))}
+.suc.corrientes{--sc:var(--c-corrientes)}.suc.posadas{--sc:var(--c-posadas)}.suc.obera{--sc:var(--c-obera)}.suc.eldorado{--sc:var(--c-eldorado)}
+.suc.sin{color:var(--apagado);font-weight:500}.suc.sin i{background:transparent;border:1.5px dashed var(--apagado)}
+.aviso{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+.aviso.der{background:color-mix(in srgb,var(--marca) 12%,transparent);color:var(--marca)}
+.aviso.may{background:#3b82f61f;color:#2563eb}
+:root[data-tema=dark] .aviso.der{color:#ff7b82}:root[data-tema=dark] .aviso.may{color:#7bb0ff}
+.t-ped{font-size:13.5px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.tarjeta .nota{font-size:12.5px;line-height:1.45;color:var(--apagado);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.t-pie{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--linea);padding-top:10px;margin-top:2px}
+.t-pie .asig{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.t-pie .asig .sub{font-size:12px;flex:none}
+.t-pie .asig select,.t-pie .asig>span:not(.sub){flex:1;min-width:0}
+.t-pie .acc{display:flex;gap:6px;flex-wrap:nowrap}
+.t-pie .acc select{flex:1 1 0;min-width:0}
+.t-pie .asig .btn{flex:none}
+.tarjeta select{font-size:12.5px;padding:6px 8px;border-radius:8px}
+.btn.chico{padding:6px 11px;font-size:12.5px;border-radius:8px}
+@media (max-width:899px){.tablero{grid-auto-columns:minmax(84vw,1fr)}}
+#demo-aviso{background:var(--velo-col);border:1px solid var(--linea);color:var(--apagado);border-radius:10px;font-size:12.5px;font-weight:500;padding:8px 12px}
+.chip-e{font-weight:600}
+.chip-e.may{background:color-mix(in srgb,var(--marca) 12%,transparent);border-color:transparent;color:var(--marca)}
+:root[data-tema=dark] .chip-e.may{color:#ff7b82}
+.kpi.dest{border-color:var(--linea)}
+
+/* ===== v4: tablas, filtros, formularios, agenda y chat ===== */
+select,input[type=text],input[type=search],input[type=date],input[type=time],input[type=email],input[type=password],textarea{font-size:13.5px;border-radius:9px;padding:8px 11px}
+input[type=time]{background:var(--verde-2);border:1px solid var(--linea);color:var(--texto);color-scheme:inherit}
+select:focus,input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--marca) 55%,transparent);outline-offset:0;border-color:var(--marca)}
+.filtros{gap:8px;align-items:center}
+.filtros select,.filtros input[type=search],.filtros input[type=text],.filtros input[type=date],.filtros .btn{height:36px;padding-top:0;padding-bottom:0}
+.filtros .btn.chico,.fila .btn.chico{height:36px;padding:0 12px}
+.filtros label.sub{font-size:12.5px}
+.fila .btn.chico.activo,.rango .btn.activo{background:var(--marca);color:#fff;border-color:var(--marca)}
+
+.tabla{overflow:auto}
+.tabla table td{padding:12px 14px;font-size:13.5px;vertical-align:middle;border-bottom:1px solid var(--linea)}
+.tabla table tbody tr:last-child td{border-bottom:0}
+.tabla select{height:32px;padding:0 26px 0 9px;font-size:13px;border-radius:8px}
+.tabla input[type=text]{height:32px;font-size:13px;border-radius:8px}
+.tabla .medida{white-space:nowrap;font-size:12.5px}
+.tabla .num{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--apagado);font-size:13px}
+a.wa[href^="https://wa.me"]{color:var(--apagado);font-weight:500;font-size:12.5px;font-variant-numeric:tabular-nums;text-decoration:none}
+a.wa[href^="https://wa.me"]:hover{color:var(--texto);text-decoration:underline}
+a.wa[data-ficha]{color:var(--texto);font-weight:600;text-decoration:underline;text-decoration-color:var(--verde-3);text-underline-offset:3px}
+a.wa[data-ficha]:hover{text-decoration-color:var(--marca)}
+.pill{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600}
+.p-confirmado{color:var(--ok)}
+.suc-td{white-space:nowrap}
+
+/* formulario de tareas */
+.formtarea.panel{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 16px;align-items:end;padding:18px 20px}
+.formtarea .ancho{grid-column:1/-1}
+.formtarea label{font-size:12.5px;font-weight:600}
+.formtarea .btn{justify-self:start}
+
+/* agenda */
+.cal .chip,:root[data-tema=dark] .cal .chip{background:color-mix(in srgb,var(--marca) 9%,var(--verde-2));color:var(--texto);border-left:3px solid var(--marca);border-radius:5px;font-weight:600}
+.cal .chip.ok,:root[data-tema=dark] .cal .chip.ok{background:color-mix(in srgb,var(--ok) 11%,var(--verde-2));border-left-color:var(--ok);color:var(--texto)}
+.cal .chip.tarea,:root[data-tema=dark] .cal .chip.tarea{background:var(--velo-col);border-left-color:var(--apagado);color:var(--texto);font-weight:500}
+.cal .dia.hoy{background:color-mix(in srgb,var(--marca) 5%,transparent)}
+
+/* chat */
+.burbuja small{text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:600}
+.estado-bot .pill{font-size:12px}
+.formtarea.panel{grid-template-columns:repeat(3,minmax(0,1fr))}
+.formtarea.panel>:nth-child(3){order:6}.formtarea.panel>:nth-child(6){order:7}.formtarea.panel>:nth-child(7){order:8}.formtarea.panel>:nth-child(8){order:9}
+@media (max-width:760px){.formtarea.panel{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1096,12 +1229,13 @@ function vConsultas(){
   const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr>
     <td class="num">${fmtTs(q.creada)}</td>
     <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
+    <td class="suc-td"><span class="suc ${sucDeQ(q)||'sin'}"><i></i>${esc(nomSuc(sucDeQ(q)))}</span></td>
     <td>${q.cantidad ? esc(q.cantidad)+' × ' : ''}<span class="medida">${esc(q.medida||'—')}</span><div class="sub">${esc(q.modelo||'')}</div></td>
     <td>${q.lead_calificado ? '<span class="pill p-confirmado">calificado</span>' : '<span class="sub">—</span>'}</td>
     <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span>${archivada(q) ? `<div class="sub" style="margin-top:4px">Archivada · sin respuesta hace ${diasSinRespuesta(q)} días</div>` : ''}</td>
     <td>${asigCtl(q)}</td>
     <td>${btnChat(c)}</td>
-    <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:180px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
+    <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:150px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
   const rangos = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico" type="button" data-cons-rango="${k}">${t}</button>`).join('');
   return `<section class="vista"><div class="fila"><h2>Consultas <span class="sub">(${l.length}${l.length!==D.consultas.length ? ' de '+D.consultas.length : ''})</span></h2><div class="filtros"><input type="search" id="cons-busca" value="${esc(fConsBusca)}" placeholder="Buscar nombre, número, medida, modelo o nota" aria-label="Buscar en consultas" style="min-width:280px"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}<option value="archivadas">Archivadas (${D.consultas.filter(archivada).length})</option></select>${selAsig()}
     <select id="f-suc" aria-label="Filtrar por sucursal"><option value="todas">Todas las sucursales</option>${SUCS.map(x => `<option value="${x.k}" ${x.k===fSuc?'selected':''}>${x.t}</option>`).join('')}<option value="sin" ${fSuc==='sin'?'selected':''}>Sin zona</option></select>
@@ -1111,7 +1245,7 @@ function vConsultas(){
     <select id="f-cons-orden" aria-label="Ordenar"><option value="recientes" ${fConsOrden==='recientes'?'selected':''}>Más recientes primero</option><option value="antiguas" ${fConsOrden==='antiguas'?'selected':''}>Más antiguas primero</option></select>
     ${hayFiltrosCons() ? '<button class="btn sec chico" type="button" data-cons-limpiar="1">Limpiar filtros</button>' : ''}<button class="btn sec chico" type="button" data-cons-csv="1">Exportar CSV</button></div></div>
   <div class="contador" style="margin:-4px 0 12px">${fConsulta==='archivadas' ? `Mostrando las consultas abiertas cuyo cliente no escribe hace más de ${DIAS_ARCHIVO} días. Si el cliente vuelve a escribir, reaparece sola en la lista normal.` : (() => { const n = D.consultas.filter(archivada).length; return n ? `${n} ${n===1?'consulta archivada':'consultas archivadas'} por no responder hace más de ${DIAS_ARCHIVO} días. <a href="#" data-ver-archivadas="1" style="color:var(--amarillo)">Ver archivadas</a>` : ''; })()}</div>
-  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Asignado</th><th>Chat</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="8" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
+  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Asignado</th><th>Chat</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="9" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vContactos(){
   const b = busca.trim().toLowerCase();
@@ -1126,22 +1260,23 @@ function vContactos(){
 function turnoDe(q){
   return D.turnos.filter(t => t.consulta_id===q.id && !['cancelado','no_vino'].includes(t.estado)).sort((a,b) => (a.fecha+(a.hora||'')).localeCompare(b.fecha+(b.hora||'')))[0];
 }
+const relTs = t => { const m = Math.max(0,Math.round((Date.now()-new Date(t))/60000)); if(m<1) return 'ahora'; if(m<60) return `hace ${m} min`; const h = Math.round(m/60); if(h<24) return `hace ${h} h`; const d = Math.round(h/24); return d===1 ? 'ayer' : `hace ${d} días`; };
 function tarjetaConsulta(q){
-  const c = q.contactos ?? {}, t = turnoDe(q);
-  return `<article class="tarjeta" draggable="true" data-id="${q.id}">
-    ${q.estado==='derivada' ? '<span class="alerta-der">Necesita que lo atienda una persona</span>' : ''}
-    ${q.estado==='mayorista' ? '<span class="alerta-may">Cliente mayorista</span>' : ''}
-    <b>${esc(c.nombre||c.identificador||'Sin nombre')}</b>
+  const c = q.contactos ?? {}, t = turnoDe(q), suc = sucDeQ(q);
+  const aviso = q.estado==='derivada' ? '<span class="aviso der">Necesita un asesor</span>' : '';
+  return `<article class="tarjeta est-${q.estado}" draggable="true" data-id="${q.id}">
+    <div class="t-cab"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><time title="${esc(fmtTs(q.creada))}">${relTs(q.creada)}</time></div>
+    <div class="t-meta"><span class="suc ${suc||'sin'}"><i></i>${esc(nomSuc(suc))}</span>${aviso}</div>
     ${chipsEtq(ctDeId(q.contacto_id))}
-    <span class="chip-suc ${sucDeQ(q)?'':'sin'}">${esc(nomSuc(sucDeQ(q)))}</span>
-    <div>${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
+    <div class="t-ped">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
     ${t ? `<div class="sub">Visita: <b style="display:inline;color:var(--texto)">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> · ${esc(t.modalidad||'')}</div>` : ''}
-    ${q.notas ? `<div class="sub">${esc(q.notas)}</div>` : ''}
+    ${q.notas ? `<div class="nota" title="${esc(q.notas)}">${esc(q.notas)}</div>` : ''}
     ${q.estado==='perdida' ? `<div><span class="pill p-perdida">${esc(MOTIVOS[q.motivo_perdida]||'Sin motivo')}</span></div>` : ''}
-    ${q.estado==='cerrada' ? `<div>${q.monto!=null ? `<b style="display:inline;color:var(--amarillo)">${fmtUSD(q.monto)}</b>` : '<span class="sub">Sin monto</span>'} <button class="btn sec chico" type="button" data-monto="${q.id}">${q.monto!=null?'Editar':'Cargar monto'}</button></div>` : ''}
-    <div class="sub">${fmtTs(q.creada)}</div>
-    ${D.perfiles.length ? `<div class="asig"><span class="sub">Asignado a</span>${asigCtl(q)}</div>` : ''}
-    <div class="acc">${btnChat(c)}<select data-suc-q="${q.id}" aria-label="Cambiar de sucursal"><option value="">Sucursal…</option>${SUCS.filter(x => x.k!==sucDeQ(q)).map(x => `<option value="${x.k}">${x.t}</option>`).join('')}</select><select data-mover="${q.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==q.estado).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div></article>`;
+    ${q.estado==='cerrada' ? `<div>${q.monto!=null ? `<b style="display:inline;color:var(--marca)">${fmtUSD(q.monto)}</b>` : '<span class="sub">Sin monto</span>'} <button class="btn sec chico" type="button" data-monto="${q.id}">${q.monto!=null?'Editar':'Cargar monto'}</button></div>` : ''}
+    <div class="t-pie">
+      <div class="asig">${D.perfiles.length ? asigCtl(q) : ''}${btnChat(c)}</div>
+      <div class="acc"><select data-suc-q="${q.id}" aria-label="Cambiar de sucursal"><option value="">Sucursal…</option>${SUCS.filter(x => x.k!==suc).map(x => `<option value="${x.k}">${x.t}</option>`).join('')}</select><select data-mover="${q.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==q.estado).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div>
+    </div></article>`;
 }
 async function cambiarSuc(id, suc){
   const q = D.consultas.find(x => x.id===id); if(!q || !suc) return;
@@ -1342,7 +1477,7 @@ function vCalendario(){
   const dom = new Date(diaSel+'T00:00:00').getDay()===0;
   return `<section class="vista"><div class="fila"><div class="mesnav"><button class="btn sec chico" type="button" data-mes="-1" aria-label="Mes anterior">‹</button><h2>${MESES[m]} ${y}</h2><button class="btn sec chico" type="button" data-mes="1" aria-label="Mes siguiente">›</button><button class="btn sec chico" type="button" data-hoy="1">Hoy</button></div><div class="filtros">${toggleAgenda()}<select id="f-cal-tareas" aria-label="Tareas en el calendario"><option value="mias">Mis tareas</option><option value="todas">Todas las tareas</option><option value="no">Sin tareas</option></select></div></div>
   <div class="cal">${celdas}</div>
-  <div class="leyenda"><span><i style="background:var(--amarillo)"></i>Visita agendada</span><span><i style="background:#ff8f8f"></i>Tarea</span></div>
+  <div class="leyenda"><span><i style="background:var(--amarillo)"></i>Visita agendada</span><span><i style="background:var(--ok)"></i>Visita confirmada</span><span><i style="background:var(--apagado)"></i>Tarea</span></div>
   <div class="panel" style="margin-top:14px"><h3>${fmtFecha(diaSel)}${dom ? ' · Local cerrado' : ''}</h3>${detalle || '<div class="vacio">No hay turnos ni tareas este día.</div>'}</div></section>`;
 }
 /* ---------- Notificaciones ---------- */
@@ -1425,7 +1560,7 @@ function pintar(){
   const fct = $('#f-cal-tareas'); if(fct) fct.value = fCalTareas;
   const ft = $('#f-tareas'); if(ft) ft.value = fTareas;
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
-  const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) tb.textContent = nT ? `Tareas (${nT})` : 'Tareas';
+  const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) { const tn = [...tb.childNodes].filter(n => n.nodeType===3).pop(); const tx = nT ? `Tareas (${nT})` : 'Tareas'; if(tn) tn.textContent = tx; else tb.append(tx); }
   renderNotif();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
   if(foco==='busca' || foco==='perd-busca' || foco==='cons-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
