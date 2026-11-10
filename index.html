@@ -577,6 +577,22 @@ a.wa[data-ficha]:hover{text-decoration-color:var(--marca)}
 .formtarea.panel{grid-template-columns:repeat(3,minmax(0,1fr))}
 .formtarea.panel>:nth-child(3){order:6}.formtarea.panel>:nth-child(6){order:7}.formtarea.panel>:nth-child(7){order:8}.formtarea.panel>:nth-child(8){order:9}
 @media (max-width:760px){.formtarea.panel{grid-template-columns:1fr}}
+
+.t-del{margin-left:6px;flex:none;background:transparent;border:0;color:var(--apagado);width:26px;height:26px;border-radius:7px;display:inline-grid;place-items:center;cursor:pointer;padding:0;opacity:.55}
+.tarjeta:hover .t-del,.t-del:focus-visible{opacity:1}
+.t-del:hover{background:color-mix(in srgb,var(--marca) 12%,transparent);color:var(--marca);opacity:1}
+.t-cab time{margin-left:auto}
+@media (hover:none){.t-del{opacity:1}}
+.chk{width:36px;padding-left:14px !important;padding-right:0 !important}
+.chk input{width:16px;height:16px;accent-color:var(--marca);cursor:pointer}
+.selbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:color-mix(in srgb,var(--marca) 8%,var(--verde-2));border:1px solid color-mix(in srgb,var(--marca) 30%,var(--linea));border-radius:12px;padding:10px 14px;margin:0 0 12px;font-size:13.5px}
+.btn-peligro{background:var(--marca);color:#fff;border-color:var(--marca)}
+.t-del-fila:hover{border-color:var(--marca);color:var(--marca)}
+@media (min-width:900px){
+  .wrap>header .logo-top{align-self:stretch;justify-content:center;margin:0 2px 4px;padding:12px 10px;border-radius:12px;border:1px solid var(--linea);box-shadow:0 1px 2px #0f172a0f}
+  .wrap>header .logo-top img{height:44px;max-width:100%;object-fit:contain}
+  .wrap>header nav{padding-top:14px;border-top:1px solid var(--linea)}
+}
 </style>
 </head>
 <body>
@@ -660,7 +676,7 @@ const waLink = tel => `https://wa.me/${String(tel).replace(/\D/g,'')}`;
 
 let db = null, D = {contactos:[],consultas:[],turnos:[],perfiles:[],tareas:[],ind:{total_leads:0,leads_calificados:0,ventas_agendadas:0}};
 let fPanel = '30', fConsBusca = '', fConsDesde = '', fConsHasta = '', fConsMedida = '', fConsPais = '', fConsOrden = 'recientes', MSG_OK = false;
-let fSuc = 'todas';
+let fSuc = 'todas', selCons = new Set();
 const SUCS = [{k:'corrientes',t:'Corrientes'},{k:'posadas',t:'Posadas'},{k:'obera',t:'Oberá'},{k:'eldorado',t:'Eldorado'}];
 const nomSuc = k => (SUCS.find(x => x.k===k)||{}).t || 'Sin zona';
 /* Sucursal por característica telefónica (WhatsApp AR: 549 + característica + número) */
@@ -819,6 +835,9 @@ document.addEventListener('click', e => {
   const pr = e.target.closest('[data-perd-rango]'); if(pr){ rangoPerdidos(pr.dataset.perdRango); return pintar(); }
   const pp = e.target.closest('[data-panel-rango]'); if(pp){ fPanel = pp.dataset.panelRango; return pintar(); }
   const ts = e.target.closest('[data-suc]'); if(ts && ts.tagName==='BUTTON'){ fSuc = ts.dataset.suc; return pintar(); }
+  const dq = e.target.closest('[data-del-q]'); if(dq){ e.stopPropagation(); return eliminarConsultas([Number(dq.dataset.delQ)]); }
+  if(e.target.closest('[data-del-sel]')) return eliminarConsultas(selCons);
+  if(e.target.closest('[data-sel-clear]')){ selCons.clear(); return pintar(); }
   const cr = e.target.closest('[data-cons-rango]'); if(cr){ rangoConsultas(cr.dataset.consRango); return pintar(); }
   if(e.target.closest('[data-cons-limpiar]')){ limpiarFiltrosCons(); return pintar(); }
   if(e.target.closest('[data-ver-archivadas]')){ e.preventDefault(); fConsulta = 'archivadas'; return pintar(); }
@@ -1227,6 +1246,7 @@ function vConsultas(){
   const paises = [...new Set(D.consultas.map(q => q.contactos?.pais || 'Sin país'))].sort();
   const l = consultasFiltradas(false).sort((a,b) => fConsOrden==='recientes' ? new Date(b.creada)-new Date(a.creada) : new Date(a.creada)-new Date(b.creada));
   const filas = l.map(q => { const c = q.contactos ?? {}; return `<tr>
+    ${esSup() ? `<td class="chk"><input type="checkbox" data-sel-q="${q.id}" aria-label="Seleccionar consulta" ${selCons.has(q.id) ? 'checked' : ''}></td>` : ''}
     <td class="num">${fmtTs(q.creada)}</td>
     <td>${esc(c.nombre||'Sin nombre')}${chipsEtq(ctDeId(q.contacto_id))}<div class="sub"><a class="wa" href="${waLink(c.identificador||'')}" target="_blank" rel="noopener">${esc(c.identificador||'')}</a></div></td>
     <td class="suc-td"><span class="suc ${sucDeQ(q)||'sin'}"><i></i>${esc(nomSuc(sucDeQ(q)))}</span></td>
@@ -1235,7 +1255,7 @@ function vConsultas(){
     <td><select data-t="consultas" data-id="${q.id}" data-c="estado" aria-label="Estado de la consulta">${ESTADOS_CONSULTA.map(e => `<option value="${e}" ${e===q.estado?'selected':''}>${e}</option>`).join('')}</select><span class="guardado" hidden>✓</span>${archivada(q) ? `<div class="sub" style="margin-top:4px">Archivada · sin respuesta hace ${diasSinRespuesta(q)} días</div>` : ''}</td>
     <td>${asigCtl(q)}</td>
     <td>${btnChat(c)}</td>
-    <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:150px"><span class="guardado" hidden>✓</span></td></tr>`; }).join('');
+    <td><input type="text" data-t="consultas" data-id="${q.id}" data-c="notas" value="${esc(q.notas||'')}" placeholder="Agregar nota" aria-label="Nota" style="width:100%;min-width:150px"><span class="guardado" hidden>✓</span></td>${esSup() ? `<td><button type="button" class="btn sec chico t-del-fila" data-del-q="${q.id}">Eliminar</button></td>` : ''}</tr>`; }).join('');
   const rangos = [['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes'],['todo','Todo']].map(([k,t]) => `<button class="btn sec chico" type="button" data-cons-rango="${k}">${t}</button>`).join('');
   return `<section class="vista"><div class="fila"><h2>Consultas <span class="sub">(${l.length}${l.length!==D.consultas.length ? ' de '+D.consultas.length : ''})</span></h2><div class="filtros"><input type="search" id="cons-busca" value="${esc(fConsBusca)}" placeholder="Buscar nombre, número, medida, modelo o nota" aria-label="Buscar en consultas" style="min-width:280px"><select id="f-consulta" aria-label="Filtrar consultas"><option value="todas">Todas</option><option value="calificadas">Calificadas</option>${ESTADOS_CONSULTA.map(e => `<option value="${e}">${e}</option>`).join('')}<option value="archivadas">Archivadas (${D.consultas.filter(archivada).length})</option></select>${selAsig()}
     <select id="f-suc" aria-label="Filtrar por sucursal"><option value="todas">Todas las sucursales</option>${SUCS.map(x => `<option value="${x.k}" ${x.k===fSuc?'selected':''}>${x.t}</option>`).join('')}<option value="sin" ${fSuc==='sin'?'selected':''}>Sin zona</option></select>
@@ -1245,7 +1265,8 @@ function vConsultas(){
     <select id="f-cons-orden" aria-label="Ordenar"><option value="recientes" ${fConsOrden==='recientes'?'selected':''}>Más recientes primero</option><option value="antiguas" ${fConsOrden==='antiguas'?'selected':''}>Más antiguas primero</option></select>
     ${hayFiltrosCons() ? '<button class="btn sec chico" type="button" data-cons-limpiar="1">Limpiar filtros</button>' : ''}<button class="btn sec chico" type="button" data-cons-csv="1">Exportar CSV</button></div></div>
   <div class="contador" style="margin:-4px 0 12px">${fConsulta==='archivadas' ? `Mostrando las consultas abiertas cuyo cliente no escribe hace más de ${DIAS_ARCHIVO} días. Si el cliente vuelve a escribir, reaparece sola en la lista normal.` : (() => { const n = D.consultas.filter(archivada).length; return n ? `${n} ${n===1?'consulta archivada':'consultas archivadas'} por no responder hace más de ${DIAS_ARCHIVO} días. <a href="#" data-ver-archivadas="1" style="color:var(--amarillo)">Ver archivadas</a>` : ''; })()}</div>
-  <div class="tabla"><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Asignado</th><th>Chat</th><th>Notas</th></tr></thead><tbody>${filas || '<tr><td colspan="9" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
+  ${esSup() && selCons.size ? `<div class="selbar"><b>${selCons.size} ${selCons.size===1 ? 'consulta seleccionada' : 'consultas seleccionadas'}</b><span><button type="button" class="btn chico btn-peligro" data-del-sel="1">Eliminar</button> <button type="button" class="btn sec chico" data-sel-clear="1">Cancelar</button></span></div>` : ''}
+  <div class="tabla"><table><thead><tr>${esSup() ? `<th class="chk"><input type="checkbox" data-sel-all="1" aria-label="Seleccionar todas" ${l.length && l.every(q => selCons.has(q.id)) ? 'checked' : ''}></th>` : ''}<th>Fecha</th><th>Cliente</th><th>Sucursal</th><th>Pedido</th><th>Lead</th><th>Estado</th><th>Asignado</th><th>Chat</th><th>Notas</th>${esSup() ? '<th></th>' : ''}</tr></thead><tbody>${filas || '<tr><td colspan="11" class="vacio">No hay consultas con este filtro.</td></tr>'}</tbody></table></div></section>`;
 }
 function vContactos(){
   const b = busca.trim().toLowerCase();
@@ -1265,7 +1286,7 @@ function tarjetaConsulta(q){
   const c = q.contactos ?? {}, t = turnoDe(q), suc = sucDeQ(q);
   const aviso = q.estado==='derivada' ? '<span class="aviso der">Necesita un asesor</span>' : '';
   return `<article class="tarjeta est-${q.estado}" draggable="true" data-id="${q.id}">
-    <div class="t-cab"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><time title="${esc(fmtTs(q.creada))}">${relTs(q.creada)}</time></div>
+    <div class="t-cab"><b>${esc(c.nombre||c.identificador||'Sin nombre')}</b><time title="${esc(fmtTs(q.creada))}">${relTs(q.creada)}</time>${esSup() ? `<button type="button" class="t-del" data-del-q="${q.id}" aria-label="Eliminar consulta" title="Eliminar consulta"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>` : ''}</div>
     <div class="t-meta"><span class="suc ${suc||'sin'}"><i></i>${esc(nomSuc(suc))}</span>${aviso}</div>
     ${chipsEtq(ctDeId(q.contacto_id))}
     <div class="t-ped">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
@@ -1277,6 +1298,25 @@ function tarjetaConsulta(q){
       <div class="asig">${D.perfiles.length ? asigCtl(q) : ''}${btnChat(c)}</div>
       <div class="acc"><select data-suc-q="${q.id}" aria-label="Cambiar de sucursal"><option value="">Sucursal…</option>${SUCS.filter(x => x.k!==suc).map(x => `<option value="${x.k}">${x.t}</option>`).join('')}</select><select data-mover="${q.id}" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==q.estado).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select></div>
     </div></article>`;
+}
+async function eliminarConsultas(ids){
+  ids = [...ids]; if(!ids.length) return;
+  if(!esSup()){ $('#msg').textContent = 'Solo un supervisor puede eliminar consultas.'; return; }
+  const n = ids.length;
+  if(!window.confirm(`¿Eliminar ${n===1 ? 'esta consulta' : n+' consultas'}?\n\nSe borran también sus visitas agendadas. Los contactos y los chats no se borran. No se puede deshacer.`)) return;
+  try{
+    if(!DEMO){
+      const {data, error} = await db.from('consultas').delete().in('id', ids).select('id');
+      if(error) throw error;
+      if((data||[]).length < n) throw new Error('la base no borró todas (revisá que seas supervisor y que ejecutaste permisos_eliminar.sql)');
+    }
+    const set = new Set(ids);
+    D.consultas = D.consultas.filter(q => !set.has(q.id));
+    D.turnos = D.turnos.filter(t => !set.has(t.consulta_id));
+    ids.forEach(i => selCons.delete(i));
+    $('#msg').textContent = '';
+    pintar();
+  }catch(err){ $('#msg').textContent = 'No se pudo eliminar: ' + (err.message||err); }
 }
 async function cambiarSuc(id, suc){
   const q = D.consultas.find(x => x.id===id); if(!q || !suc) return;
@@ -1587,6 +1627,8 @@ $('#main').addEventListener('change', async e => {
   if(el.id==='f-agenda'){ fAgenda = el.value; return pintar(); }
   if(el.id==='f-consulta'){ fConsulta = el.value; return pintar(); }
   if(el.id==='f-cons-medida'){ fConsMedida = el.value; return pintar(); }
+  if(el.dataset.selQ){ const id = Number(el.dataset.selQ); el.checked ? selCons.add(id) : selCons.delete(id); return pintar(); }
+  if(el.dataset.selAll){ const ids = consultasFiltradas(false).map(q => q.id); ids.forEach(i => el.checked ? selCons.add(i) : selCons.delete(i)); return pintar(); }
   if(el.id==='f-suc'){ fSuc = el.value; return pintar(); }
   if(el.dataset.sucQ){ return cambiarSuc(Number(el.dataset.sucQ), el.value); }
   if(el.id==='f-cons-pais'){ fConsPais = el.value; return pintar(); }
