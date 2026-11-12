@@ -573,6 +573,7 @@ a.wa[data-ficha]:hover{text-decoration-color:var(--marca)}
 
 /* chat */
 .burbuja small{text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:600}
+.foto-chat{display:block;max-width:100%;max-height:300px;border-radius:8px;margin:3px 0 6px;cursor:zoom-in;object-fit:cover;background:#0000001f;min-height:60px}
 .estado-bot .pill{font-size:12px}
 .formtarea.panel{grid-template-columns:repeat(3,minmax(0,1fr))}
 .formtarea.panel>:nth-child(3){order:6}.formtarea.panel>:nth-child(6){order:7}.formtarea.panel>:nth-child(7){order:8}.formtarea.panel>:nth-child(8){order:9}
@@ -636,6 +637,7 @@ a.wa[data-ficha]:hover{text-decoration-color:var(--marca)}
 
 <div class="velo centro" id="venta" hidden><form class="modal" id="form-venta" role="dialog" aria-modal="true" aria-labelledby="venta-t"><h2 id="venta-t" style="font-size:20px">Registrar venta</h2><div class="sub" id="venta-sub"></div><label>Monto cobrado (pesos)<input id="venta-monto" type="number" min="0" step="0.01" inputmode="decimal" required></label><div class="error" id="venta-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="venta-cancelar">Cancelar</button><button class="btn" type="submit" id="venta-ok">Guardar venta</button></div></form></div>
 
+<div class="velo centro" id="visita" hidden><form class="modal" id="form-visita" role="dialog" aria-modal="true" aria-labelledby="visita-t"><h2 id="visita-t" style="font-size:20px">Agendar visita</h2><div class="sub" id="visita-sub"></div><div class="sub" id="visita-prev"></div><label>Día<input id="visita-fecha" type="date" required style="font-size:16px;font-weight:600"></label><label>Hora<input id="visita-hora" type="time" required style="font-size:16px;font-weight:600"></label><div class="sub" id="visita-horarios"></div><div class="sub" id="visita-aviso" style="color:var(--amarillo)"></div><label>Tipo de visita<select id="visita-modalidad" style="padding:11px 12px;font-size:16px"><option>Colocación en el local</option><option>Retiro en el local</option><option>Presupuesto / consulta</option></select></label><label>Observaciones<input id="visita-obs" type="text" maxlength="200" placeholder="Ej: 4 cubiertas, con alineación" style="font-size:15px;font-weight:400"></label><div class="error" id="visita-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="visita-cancelar">Cancelar</button><button class="btn" type="submit" id="visita-ok">Guardar visita</button></div></form></div>
 <div class="velo centro" id="perdida" hidden><form class="modal" id="form-perdida" role="dialog" aria-modal="true" aria-labelledby="perdida-t"><h2 id="perdida-t" style="font-size:20px">¿Por qué se perdió?</h2><div class="sub" id="perdida-sub"></div><label>Motivo<select id="perdida-motivo" style="padding:11px 12px;font-size:16px"><option value="sin_stock">Sin stock</option><option value="precio">Precio</option><option value="no_respondio">No respondió</option><option value="cancelacion">Cancelación del cliente</option><option value="otro">Otro</option></select></label><div class="error" id="perdida-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn sec" type="button" id="perdida-cancelar">Cancelar</button><button class="btn" type="submit" id="perdida-ok">Guardar</button></div></form></div>
 <div class="velo centro" id="aviso" hidden><form class="modal" id="form-aviso" role="dialog" aria-modal="true" aria-labelledby="aviso-t" style="width:min(480px,100%)"><h2 id="aviso-t" style="font-size:20px">Avisar que ingresó</h2><div class="sub" id="aviso-sub"></div><label>Mensaje<textarea id="aviso-texto" rows="5" style="width:100%;padding:11px 12px;font-size:15px;line-height:1.5"></textarea></label><div class="sub" id="aviso-nota"></div><div class="error" id="aviso-error" role="alert"></div><div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap"><button class="btn sec" type="button" id="aviso-cancelar">Cancelar</button><a class="btn wa-btn" id="aviso-wa" href="#" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn" type="button" id="aviso-enviar">Enviar desde el CRM</button></div></form></div>
 
@@ -791,9 +793,38 @@ async function abrirChat(ident, nombre, tab='conv'){
 const nombreAsesor = () => (yo().nombre || EMAIL.split('@')[0] || 'Asesor').replace(/[\[\]\r\n]/g,'').trim().slice(0,40) || 'Asesor';
 /* Mensajes del equipo: se guardan como "[Asesor:Nombre] texto" (los viejos: "[Asesor] texto") */
 const RE_ASESOR = /^\[Asesor(?::([^\]]*))?\]\s*/;
+/* Fotos del cliente: el bot guarda "[IMG:bucket/ruta]" en el mensaje; se muestra con una URL firmada de Supabase Storage */
+const RE_IMG = /\[IMG:([^\]\s]+)\]/;
+const sinImg = t => String(t||'').replace(RE_IMG,'').trim();
+const urlsImg = {};
+async function urlImagen(path){
+  if(DEMO) return null;
+  if(urlsImg[path]) return urlsImg[path];
+  const m = path.match(/^foto\/(\d+)$/);
+  if(m){   /* foto guardada como base64 en la tabla fotos_chat */
+    const {data, error} = await db.from('fotos_chat').select('mime,data').eq('id', m[1]).maybeSingle();
+    if(error || !data) return null;
+    const bin = atob(data.data), arr = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+    return urlsImg[path] = URL.createObjectURL(new Blob([arr], {type: data.mime || 'image/jpeg'}));
+  }
+  const i = path.indexOf('/'); if(i<1) return null;   /* respaldo: Supabase Storage */
+  const {data, error} = await db.storage.from(path.slice(0,i)).createSignedUrl(path.slice(i+1), 3600);
+  if(error || !data) return null;
+  return urlsImg[path] = data.signedUrl;
+}
+async function cargarImagenes(cu){
+  for(const im of cu.querySelectorAll('img[data-img]')){
+    const u = await urlImagen(im.dataset.img);
+    if(u){ im.onload = () => { cu.scrollTop = cu.scrollHeight; }; im.src = u; }
+    else im.replaceWith(Object.assign(document.createElement('div'), {className:'sub', textContent:'(no se pudo cargar la foto)'}));
+  }
+}
+document.addEventListener('click', e => { const im = e.target.closest && e.target.closest('.foto-chat'); if(im && im.src) window.open(im.src, '_blank', 'noopener'); });
 function burbuja(x, c){
-  const bot = x.message.type==='ai', txt = textoMsg(x.message), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
-  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
+  const bot = x.message.type==='ai', raw = textoMsg(x.message), im = raw.match(RE_IMG), txt = sinImg(raw), a = bot ? txt.match(RE_ASESOR) : null, ase = !!a;
+  const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
+  return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
 }
 function renderChat(){
   const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
@@ -803,13 +834,14 @@ function renderChat(){
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
   cu.innerHTML = c.msgs.length ? c.msgs.map(x => burbuja(x, c)).join('') : '<div class="vacio">No hay mensajes guardados para este contacto.</div>';
   cu.scrollTop = cu.scrollHeight;
+  cargarImagenes(cu);
 }
 function resumenHTML(c){
   const ct = D.contactos.find(x => x.identificador===c.ident) || {};
   const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
   const q = qs[0], t = q ? turnoDe(q) : null, nom = primerNombre(c.nombre || ct.nombre), h = hoyStr();
   const humanos = c.msgs.filter(m => m.message.type==='human'), bots = c.msgs.filter(m => m.message.type==='ai' && !RE_ASESOR.test(textoMsg(m.message)));
-  const ultCli = humanos.length ? textoMsg(humanos[humanos.length-1].message) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
+  const ultCli = humanos.length ? sinImg(textoMsg(humanos[humanos.length-1].message)) : '', ultBot = bots.length ? textoMsg(bots[bots.length-1].message) : '';
   let accion, sugerido;
   if(!q){ accion = 'Todavía no hay un pedido registrado. Escribile para saber qué medida necesita y ofrecele un presupuesto.'; sugerido = `Hola ${nom}, te escribo de Top Neumáticos. ¿Te puedo ayudar con la medida de cubiertas que buscás?`; }
   else if(q.estado==='derivada'){ accion = 'El cliente necesita que lo atienda una persona. Contactalo cuanto antes por WhatsApp' + (q.notas ? ` (motivo: ${q.notas}).` : '.'); sugerido = `Hola ${nom}, soy del equipo de Top Neumáticos. Vi tu consulta${q.medida ? ' por la medida '+q.medida : ''} y te escribo para ayudarte.`; }
@@ -824,7 +856,7 @@ function resumenHTML(c){
   else { accion = q.motivo_perdida==='sin_stock' ? `Se perdió por falta de stock${q.medida ? ' de '+q.medida : ''}. Si ingresa mercadería, avisale por WhatsApp y recuperá la consulta.` : 'La consulta está marcada como perdida. Si el cliente vuelve a escribir, retomala desde el Pipeline.'; sugerido = `Hola ${nom}, soy de Top Neumáticos. Quedamos a tu disposición si más adelante necesitás cubiertas.`; }
   const num = String(c.ident).replace(/\D/g,'');
   return `<div class="res">
-   <div class="bloque accion"><h4>Qué hacer ahora</h4><div>${esc(accion)}</div><div class="botones"><a class="btn wa-btn chico" href="https://wa.me/${num}?text=${encodeURIComponent(sugerido)}" target="_blank" rel="noopener">WhatsApp con mensaje sugerido</a></div><div class="sub" style="margin-top:8px">“${esc(sugerido)}”</div></div>
+   <div class="bloque accion"><h4>Qué hacer ahora</h4><div>${esc(accion)}</div><div class="botones"><a class="btn wa-btn chico" href="https://wa.me/${num}?text=${encodeURIComponent(sugerido)}" target="_blank" rel="noopener">WhatsApp con mensaje sugerido</a>${q && q.estado!=='perdida' ? `<button class="btn chico" type="button" data-agendar="${q.id}">${t ? 'Reprogramar visita' : 'Agendar visita'}</button>` : ''}</div><div class="sub" style="margin-top:8px">“${esc(sugerido)}”</div></div>
    <div class="bloque"><h4>Cliente</h4><dl><dt>Nombre</dt><dd>${esc(c.nombre||ct.nombre||'Sin nombre')}</dd><dt>WhatsApp</dt><dd>${esc(c.ident)}</dd><dt>País</dt><dd>${esc(ct.pais||'—')}</dd><dt>Primer contacto</dt><dd>${ct.primer_contacto ? fmtTs(ct.primer_contacto) : '—'}</dd><dt>Último contacto</dt><dd>${ct.ultimo_contacto ? fmtTs(ct.ultimo_contacto) : '—'}</dd><dt>Mensajes</dt><dd>${humanos.length} del cliente, ${bots.length} del bot</dd></dl></div>
    ${q ? `<div class="bloque"><h4>Pedido</h4><dl><dt>Medida</dt><dd>${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '—'}</dd><dt>Modelo</dt><dd>${esc(q.modelo||'—')}</dd><dt>Cantidad</dt><dd>${esc(q.cantidad ?? '—')}</dd><dt>Etapa</dt><dd>${pill(q.estado)}</dd>${t ? `<dt>Visita</dt><dd>${fmtFecha(t.fecha)} ${fmtHora(t.hora)} · ${esc(t.modalidad||'')} · ${pill(t.estado)}</dd>${t.observaciones ? `<dt>Observaciones</dt><dd>${esc(t.observaciones)}</dd>` : ''}` : ''}${q.monto!=null ? `<dt>Monto</dt><dd>${fmtUSD(q.monto)}</dd>` : ''}${q.notas ? `<dt>Notas</dt><dd>${esc(q.notas)}</dd>` : ''}${qs.length>1 ? `<dt>Otras consultas</dt><dd>${qs.length-1}</dd>` : ''}</dl></div>` : ''}
    ${(() => { const ts = D.tareas.filter(t => ct.id!=null && t.contacto_id===ct.id && t.estado==='pendiente'); return ts.length ? `<div class="bloque"><h4>Tareas con este cliente</h4>${ts.map(t => `<div>${esc(t.titulo)} <span class="sub">· ${esc(nomOp(t.asignado_a))} · ${esc(vencPlano(t))}${t.hora ? ' '+t.hora.slice(0,5) : ''}</span></div>`).join('')}</div>` : ''; })()}
@@ -844,6 +876,7 @@ document.addEventListener('click', e => {
   if(e.target.closest('[data-cons-csv]')) return exportarConsultas();
   const rc = e.target.closest('[data-recuperar]'); if(rc) return moverConsulta(Number(rc.dataset.recuperar), 'abierta');
   const mt = e.target.closest('[data-monto]'); if(mt) return pedirMonto(Number(mt.dataset.monto), false);
+  const ag = e.target.closest('[data-agendar]'); if(ag) return pedirVisita(Number(ag.dataset.agendar));
   const mo = e.target.closest('[data-modo]'); if(mo){ modoAgenda = mo.dataset.modo; return pintar(); }
   const me = e.target.closest('[data-mes]'); if(me){ const d = new Date(mes.y, mes.m + Number(me.dataset.mes), 1); mes = {y:d.getFullYear(), m:d.getMonth()}; return pintar(); }
   if(e.target.closest('[data-hoy]')){ const d = new Date(); mes = {y:d.getFullYear(), m:d.getMonth()}; diaSel = hoyStr(); return pintar(); }
@@ -912,7 +945,7 @@ document.addEventListener('dragover', e => { const c = e.target.closest?.('.col'
 document.addEventListener('drop', e => { const c = e.target.closest?.('.col'); if(!c || c.dataset.etapa==='nuevo') return; e.preventDefault(); c.classList.remove('sobre'); const raw = e.dataTransfer.getData('text/plain'), id = Number(raw.slice(1)); if(!id) return; if(raw[0]==='c') moverContacto(id, c.dataset.etapa); else moverConsulta(id, c.dataset.etapa); });
 $('#chat-cerrar').addEventListener('click', () => $('#velo').hidden = true);
 $('#velo').addEventListener('click', e => { if(e.target.id==='velo') $('#velo').hidden = true; });
-document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; $('#aviso').hidden = true; $('#etq').hidden = true; } });
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ $('#velo').hidden = true; $('#venta').hidden = true; $('#perdida').hidden = true; $('#visita').hidden = true; $('#aviso').hidden = true; $('#etq').hidden = true; } });
 
 /* ---------- Vistas ---------- */
 const cliente = t => t?.consultas?.contactos ?? {};
@@ -1291,6 +1324,7 @@ function tarjetaConsulta(q){
     ${chipsEtq(ctDeId(q.contacto_id))}
     <div class="t-ped">${q.cantidad ? esc(q.cantidad)+' × ' : ''}${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '<span class="sub">Sin medida</span>'} <span class="sub">${esc(q.modelo||'')}</span></div>
     ${t ? `<div class="sub">Visita: <b style="display:inline;color:var(--texto)">${fmtFecha(t.fecha)} ${fmtHora(t.hora)}</b> · ${esc(t.modalidad||'')}</div>` : ''}
+    ${['perdida','cerrada'].includes(q.estado) ? '' : `<div><button class="btn chico" type="button" data-agendar="${q.id}">${t ? 'Reprogramar visita' : 'Agendar visita'}</button></div>`}
     ${q.notas ? `<div class="nota" title="${esc(q.notas)}">${esc(q.notas)}</div>` : ''}
     ${q.estado==='perdida' ? `<div><span class="pill p-perdida">${esc(MOTIVOS[q.motivo_perdida]||'Sin motivo')}</span></div>` : ''}
     ${q.estado==='cerrada' ? `<div>${q.monto!=null ? `<b style="display:inline;color:var(--marca)">${fmtUSD(q.monto)}</b>` : '<span class="sub">Sin monto</span>'} <button class="btn sec chico" type="button" data-monto="${q.id}">${q.monto!=null?'Editar':'Cargar monto'}</button></div>` : ''}
@@ -1385,6 +1419,62 @@ $('#form-venta').addEventListener('submit', async e => {
   $('#venta-ok').disabled = false;
 });
 $('#venta-cancelar').addEventListener('click', () => $('#venta').hidden = true);
+/* ---------- Agendar visita manual ---------- */
+const HORARIOS = {
+  corrientes:{sem:[['08:00','12:30'],['16:00','20:00']], sab:[['08:00','12:00']]},
+  eldorado:{sem:[['08:00','12:00'],['13:00','17:30']], sab:[['08:00','12:00']]},
+  posadas:{sem:[['08:00','12:30'],['13:30','17:30']], sab:[['08:00','12:30']]},
+  obera:{sem:[['07:30','12:00'],['15:00','19:00']], sab:[['07:30','12:00']]}
+};
+let visitaId = null;
+const tramosTxt = r => r.map(x => x[0].replace(/^0/,'')+' a '+x[1].replace(/^0/,'')).join(' y ');
+function avisoHorario(){
+  const q = D.consultas.find(x => x.id===visitaId), suc = q && sucDeQ(q), H = suc && HORARIOS[suc];
+  const f = $('#visita-fecha').value, hr = $('#visita-hora').value, av = $('#visita-aviso');
+  av.textContent = '';
+  if(!H || !f) return;
+  const dia = new Date(f+'T12:00:00').getDay();
+  if(dia===0){ av.textContent = 'Ese día es domingo: la sucursal está cerrada.'; return; }
+  if(!hr) return;
+  const tr = dia===6 ? H.sab : H.sem;
+  if(!tr.some(x => hr>=x[0] && hr<=x[1])) av.textContent = `Ojo: ${hr} cae fuera del horario de ${nomSuc(suc)} (${tramosTxt(tr)}). Podés guardarla igual.`;
+}
+function pedirVisita(id){
+  const q = D.consultas.find(x => x.id===id); if(!q) return;
+  visitaId = id; const t = turnoDe(q), suc = sucDeQ(q), H = suc && HORARIOS[suc];
+  $('#visita-t').textContent = t ? 'Reprogramar visita' : 'Agendar visita';
+  $('#visita-sub').textContent = `${q.contactos?.nombre || q.contactos?.identificador || 'Cliente'} · ${q.cantidad ? q.cantidad+' × ' : ''}${q.medida||''} ${q.modelo||''} · ${nomSuc(suc)}`;
+  $('#visita-prev').textContent = t ? `Visita actual: ${fmtFecha(t.fecha)} ${fmtHora(t.hora)}. Se cambia por la nueva, no se crea otra.` : '';
+  $('#visita-fecha').min = hoyStr(); $('#visita-fecha').value = t ? t.fecha : '';
+  $('#visita-hora').value = t && t.hora ? String(t.hora).slice(0,5) : '';
+  $('#visita-modalidad').value = t?.modalidad && [...$('#visita-modalidad').options].some(o => o.value===t.modalidad) ? t.modalidad : 'Colocación en el local';
+  $('#visita-obs').value = t?.observaciones || '';
+  $('#visita-horarios').textContent = H ? `Horario ${nomSuc(suc)}: lun a vie ${tramosTxt(H.sem)} · sáb ${tramosTxt(H.sab)}` : '';
+  $('#visita-error').textContent = ''; avisoHorario();
+  $('#visita').hidden = false; $('#visita-fecha').focus();
+}
+$('#visita-fecha').addEventListener('input', avisoHorario);
+$('#visita-hora').addEventListener('input', avisoHorario);
+$('#form-visita').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = D.consultas.find(x => x.id===visitaId); if(!q) return;
+  const campos = {fecha:$('#visita-fecha').value, hora:$('#visita-hora').value+':00', modalidad:$('#visita-modalidad').value, observaciones:$('#visita-obs').value.trim()||null, estado:'agendado'};
+  $('#visita-ok').disabled = true; $('#visita-error').textContent = '';
+  try{
+    const t = turnoDe(q);
+    if(t){ await actualizar('turnos', t.id, campos); Object.assign(t, campos); }
+    else if(DEMO){ D.turnos.push({id:Math.max(0,...D.turnos.map(x => x.id))+1, consulta_id:q.id, ...campos, creado:new Date().toISOString(), consultas:q}); }
+    else {
+      const {data, error} = await db.from('turnos').insert({consulta_id:q.id, ...campos}).select().single();
+      if(error) throw error;
+      D.turnos.push({...data, consultas:{medida:q.medida, modelo:q.modelo, cantidad:q.cantidad, contactos:q.contactos}});
+    }
+    if(!['agendada','cerrada'].includes(q.estado)){ await actualizar('consultas', q.id, {estado:'agendada'}); q.estado = 'agendada'; }
+    $('#visita').hidden = true; pintar(); toast(`Visita guardada: ${fmtFecha(campos.fecha)} ${fmtHora(campos.hora)}`);
+  }catch(err){ $('#visita-error').textContent = 'No se pudo guardar: ' + (err.message||err) + '. ¿Ejecutaste permisos_turnos.sql?'; }
+  $('#visita-ok').disabled = false;
+});
+$('#visita-cancelar').addEventListener('click', () => $('#visita').hidden = true);
 const MOTIVOS = {sin_stock:'Sin stock', precio:'Precio', no_respondio:'No respondió', cancelacion:'Cancelación del cliente', otro:'Otro'};
 let fPerdidos = 'sin_stock', perdidaId = null, fPerdDesde = '', fPerdHasta = '', fPerdMedida = '', fPerdBusca = '';
 const claveBusq = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
