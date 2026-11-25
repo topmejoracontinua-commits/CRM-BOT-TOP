@@ -827,9 +827,33 @@ function burbuja(x, c){
   const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
   return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}</div>`;
 }
+/* Etapa del contacto desde el chat: la consulta más reciente (prefiere una activa) */
+function consultaDeChat(){
+  const ct = chatCtx && contactoDe(chatCtx.ident); if(!ct) return null;
+  const qs = D.consultas.filter(q => q.contacto_id===ct.id).sort((a,b) => new Date(b.creada)-new Date(a.creada));
+  return qs.find(q => !['cerrada','perdida'].includes(q.estado)) || qs[0] || null;
+}
+function chatMover(etapa){
+  if(!etapa || !chatCtx) return;
+  const ct = contactoDe(chatCtx.ident); if(!ct) return;
+  const q = consultaDeChat();
+  if(q) moverConsulta(q.id, etapa); else moverContacto(ct.id, etapa);
+}
+function chatEtapaHTML(){
+  const q = consultaDeChat(), est = q ? q.estado : 'nuevo', et = ETAPAS.find(e => e.k===est) || ETAPAS[0];
+  const btn = (k, t) => est===k ? '' : `<button class="btn sec chico" type="button" data-chat-etapa="${k}">${t}</button>`;
+  return `<div class="etqs" style="flex-basis:100%;align-items:center"><span class="sub" style="display:inline-flex;gap:6px;align-items:center"><span style="width:9px;height:9px;border-radius:50%;background:${et.c};display:inline-block"></span>Etapa: <b style="color:var(--texto)">${esc(et.t)}</b></span>
+    <select data-chat-mover="1" aria-label="Mover a otra etapa"><option value="">Mover a…</option>${ETAPAS.filter(e => e.k!=='nuevo' && e.k!==est).map(e => `<option value="${e.k}">${e.t}</option>`).join('')}</select>
+    ${est==='derivada' || est==='mayorista' || est==='nuevo' ? btn('abierta','Atendido') : ''}${btn('perdida','Perdido')}</div>`;
+}
+function chatBarraHTML(){
+  const c = chatCtx, num = String(c.ident).replace(/\D/g,'');
+  return `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>${chatEtapaHTML()}` : ''; })()}`;
+}
+function pintarBarraChat(){ if(chatCtx) $('#chat-barra').innerHTML = chatBarraHTML(); }
 function renderChat(){
-  const c = chatCtx, cu = $('#chat-cuerpo'), num = String(c.ident).replace(/\D/g,'');
-  $('#chat-barra').innerHTML = `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>` : ''; })()}`;
+  const c = chatCtx, cu = $('#chat-cuerpo');
+  pintarBarraChat();
   if(c.cargando){ cu.innerHTML = '<div class="vacio">Cargando conversación…</div>'; return; }
   if(chatTab==='res'){ cu.innerHTML = resumenHTML(c); cu.scrollTop = 0; return; }
   if(c.error){ cu.innerHTML = `<div class="error">No se pudo cargar la conversación: ${esc(c.error)}. Ejecutá permisos_chat.sql en Supabase.</div>`; return; }
@@ -1697,11 +1721,14 @@ function pintar(){
   const fo = $('#f-tarea-op'); if(fo) fo.value = fTareaOp;
   const nT = misPendientes().length, tb = document.querySelector('#tabs [data-v="tareas"]'); if(tb) { const tn = [...tb.childNodes].filter(n => n.nodeType===3).pop(); const tx = nT ? `Tareas (${nT})` : 'Tareas'; if(tn) tn.textContent = tx; else tb.append(tx); }
   renderNotif();
+  if(chatCtx && !$('#velo').hidden) pintarBarraChat();
   $('#usuario').textContent = D.perfiles.length ? `${yo().nombre || EMAIL} · ${esSup() ? 'Supervisor' : 'Operador'}` : EMAIL;
   if(foco==='busca' || foco==='perd-busca' || foco==='cons-busca'){ const i = $('#'+foco); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
 }
 
 /* ---------- Eventos ---------- */
+document.addEventListener('change', e => { const cm = e.target.closest?.('[data-chat-mover]'); if(cm){ const v = cm.value; cm.value = ''; if(v) chatMover(v); } });
+document.addEventListener('click', e => { const ce = e.target.closest('[data-chat-etapa]'); if(ce) chatMover(ce.dataset.chatEtapa); });
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ vista = b.dataset.v; pintar(); } });
 $('#main').addEventListener('change', async e => {
   const el = e.target;
