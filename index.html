@@ -909,7 +909,7 @@ function resumenHTML(c){
   const num = String(c.ident).replace(/\D/g,'');
   return `<div class="res">
    <div class="bloque accion"><h4>Qué hacer ahora</h4><div>${esc(accion)}</div><div class="botones"><a class="btn wa-btn chico" href="https://wa.me/${num}?text=${encodeURIComponent(sugerido)}" target="_blank" rel="noopener">WhatsApp con mensaje sugerido</a>${q && q.estado!=='perdida' ? `<button class="btn chico" type="button" data-agendar="${q.id}">${t ? 'Reprogramar visita' : 'Agendar visita'}</button>` : ''}</div><div class="sub" style="margin-top:8px">“${esc(sugerido)}”</div></div>
-   <div class="bloque"><h4>Cliente</h4><dl><dt>Nombre</dt><dd>${esc(c.nombre||ct.nombre||'Sin nombre')}</dd><dt>WhatsApp</dt><dd>${esc(c.ident)}</dd><dt>País</dt><dd>${esc(ct.pais||'—')}</dd><dt>Primer contacto</dt><dd>${ct.primer_contacto ? fmtTs(ct.primer_contacto) : '—'}</dd><dt>Último contacto</dt><dd>${ct.ultimo_contacto ? fmtTs(ct.ultimo_contacto) : '—'}</dd><dt>Mensajes</dt><dd>${humanos.length} del cliente, ${bots.length} del bot</dd></dl></div>
+   <div class="bloque"><h4>Cliente</h4><dl><dt>Nombre</dt><dd>${esc(c.nombre||ct.nombre||'Sin nombre')}</dd><dt>WhatsApp</dt><dd>${esc(c.ident)}</dd><dt>País</dt><dd>${esc(ct.pais||'—')}</dd><dt>Primer contacto</dt><dd>${ct.primer_contacto ? fmtTs(ct.primer_contacto) : '—'}</dd><dt>Último contacto</dt><dd>${ct.ultimo_contacto ? fmtTs(ct.ultimo_contacto) : '—'}</dd><dt>Nos conoció por</dt><dd><select data-origen="${ct.id}" aria-label="Cómo nos conoció"><option value="">Sin dato</option>${ORIGENES.map(o => `<option value="${o[0]}" ${ct.origen===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></dd><dt>Mensajes</dt><dd>${humanos.length} del cliente, ${bots.length} del bot</dd></dl></div>
    ${q ? `<div class="bloque"><h4>Pedido</h4><dl><dt>Medida</dt><dd>${q.medida ? `<span class="medida">${esc(q.medida)}</span>` : '—'}</dd><dt>Modelo</dt><dd>${esc(q.modelo||'—')}</dd><dt>Cantidad</dt><dd>${esc(q.cantidad ?? '—')}</dd><dt>Etapa</dt><dd>${pill(q.estado)}</dd>${t ? `<dt>Visita</dt><dd>${fmtFecha(t.fecha)} ${fmtHora(t.hora)} · ${esc(t.modalidad||'')} · ${pill(t.estado)}</dd>${t.observaciones ? `<dt>Observaciones</dt><dd>${esc(t.observaciones)}</dd>` : ''}` : ''}${q.monto!=null ? `<dt>Monto</dt><dd>${fmtUSD(q.monto)}</dd>` : ''}${q.notas ? `<dt>Notas</dt><dd>${esc(q.notas)}</dd>` : ''}${qs.length>1 ? `<dt>Otras consultas</dt><dd>${qs.length-1}</dd>` : ''}</dl></div>` : ''}
    ${(() => { const ts = D.tareas.filter(t => ct.id!=null && t.contacto_id===ct.id && t.estado==='pendiente'); return ts.length ? `<div class="bloque"><h4>Tareas con este cliente</h4>${ts.map(t => `<div>${esc(t.titulo)} <span class="sub">· ${esc(nomOp(t.asignado_a))} · ${esc(vencPlano(t))}${t.hora ? ' '+t.hora.slice(0,5) : ''}</span></div>`).join('')}</div>` : ''; })()}
    <div class="bloque"><h4>Últimos mensajes</h4><dl><dt>Cliente</dt><dd class="cita">${ultCli ? esc(ultCli) : '—'}</dd><dt>Bot</dt><dd class="cita">${ultBot ? esc(ultBot.length>260 ? ultBot.slice(0,260)+'…' : ultBot) : '—'}</dd></dl></div></div>`;
@@ -1216,6 +1216,14 @@ function graficoDias(dias, valor, tit){
   const max = Math.max(...dias.map(valor), 1), h = ymd(new Date()), cada = dias.length>20 ? 5 : dias.length>10 ? 2 : 1;
   return `<div class="dias" role="img" aria-label="${esc(tit)}">${dias.map((f,i) => { const v = valor(f); return `<div class="d${f===h?' hoy':''}" title="${esc(fmtFecha(f))}: ${v}"><em>${dias.length<=14 && v ? v : ''}</em><i style="height:${Math.max(2, Math.round(v/max*100))}px"></i><span>${i%cada===0 || f===h ? f.slice(8)+'/'+f.slice(5,7) : ''}</span></div>`; }).join('')}</div>`;
 }
+const ORIGENES = [['radio','Radio'],['instagram','Instagram'],['facebook','Facebook'],['google','Google / internet'],['recomendacion','Recomendación'],['local','Pasó por el local'],['cartel','Cartel / vía pública'],['otro','Otro']];
+const origenTxt = k => (ORIGENES.find(o => o[0]===k) || [k,k||'Sin dato'])[1];
+function bloqueOrigen(nuevos){
+  const cnt = {}; nuevos.forEach(c => { const k = c.origen || 'sin_dato'; cnt[k] = (cnt[k]||0)+1; });
+  const filas = [...ORIGENES.map(o => [o[0], o[1], cnt[o[0]]||0]), ['sin_dato','Sin dato', cnt.sin_dato||0]].filter(x => x[2]>0 || x[0]!=='sin_dato' && false).sort((a,b) => b[2]-a[2]);
+  const max = Math.max(...filas.map(x => x[2]), 1), conDato = nuevos.length - (cnt.sin_dato||0);
+  return `<div class="panel" style="margin-bottom:28px"><h3>¿Cómo nos conocieron?</h3>${filas.length ? `<div class="rank ancho">${filas.map(([k,t,n]) => `<div class="fila-r"><span>${esc(t)}</span><div class="barra"><i style="width:${Math.round(n/max*100)}%"></i></div><span class="cnt">${n} <small>${pct(n, nuevos.length)}%</small></span></div>`).join('')}</div><div class="sub" style="margin-top:10px">${conDato} de ${nuevos.length} contactos nuevos del período tienen el dato. El bot lo pregunta una vez por cliente y también podés cargarlo a mano desde el chat.</div>` : '<div class="vacio">No hay contactos nuevos en este período.</div>'}</div>`;
+}
 function bloqueActividad(){
   const r = rangoPanel(fPanel), dias = listaDias(r);
   const cons = D.consultas.filter(q => dentro(q.creada, r));
@@ -1254,6 +1262,7 @@ function bloqueActividad(){
   <div class="dos" style="margin-bottom:28px">
     <div class="panel"><h3>Embudo del período</h3><div class="rank ancho">${embudo.map(([t,n]) => `<div class="fila-r"><span>${t}</span><div class="barra"><i style="width:${Math.round(n/maxE*100)}%"></i></div><span class="cnt">${n}</span></div>`).join('')}</div></div>
     <div class="panel"><h3>Medidas más pedidas</h3>${rank.length ? `<div class="rank">${rank.map(([m,o]) => `<div class="fila-r"><span class="medida">${esc(m)}</span><div class="barra"><i style="width:${Math.round(o.n/maxR*100)}%"></i></div><span class="cnt">${o.n} ${o.n===1?'pedido':'pedidos'} <small>${o.u ? '· '+o.u+' u.' : ''}</small></span></div>`).join('')}</div>` : '<div class="vacio">Sin pedidos en este período.</div>'}</div>
+  ${bloqueOrigen(nuevos)}
   </div>`;
 }
 function vPanel(){
@@ -1844,6 +1853,14 @@ $('#btn-salir').addEventListener('click', async () => {
   const {data} = await db.auth.getSession();
   if(data.session) mostrarApp(data.session.user.email, data.session.user.id); else $('#login').hidden = false;
 })();
+
+document.addEventListener('change', async e => {
+  const o = e.target.closest?.('[data-origen]'); if(!o) return;
+  const ct = D.contactos.find(c => String(c.id)===String(o.dataset.origen)); if(!ct) return;
+  const v = o.value || null;
+  try{ if(!DEMO){ const {error} = await db.from('contactos').update({origen:v}).eq('id', ct.id); if(error) throw error; } ct.origen = v; toast('Origen guardado'); }
+  catch(err){ toast('No se pudo guardar. ¿Ejecutaste origen.sql en Supabase?'); }
+});
 </script>
 </body>
 </html>
