@@ -832,6 +832,28 @@ function burbuja(x, c){
   const foto = im ? `<img class="foto-chat" data-img="${esc(im[1])}" alt="Foto enviada por el cliente">` : '';
   return `<div class="burbuja ${ase?'ase':bot?'bot':'cli'}"><small>${ase ? esc(a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : esc(c.nombre||'Cliente')}</small>${foto}${esc(ase ? txt.replace(RE_ASESOR,'') : txt)}${x.created_at ? `<time class="hora" datetime="${esc(x.created_at)}">${fmtTs(x.created_at)}</time>` : ''}</div>`;
 }
+/* Copiar la conversación como texto para pegar en WhatsApp u otro chat */
+function textoConversacion(){
+  const c = chatCtx, ct = contactoDe(c.ident);
+  const lineas = [`Conversación con ${c.nombre || (ct && ct.nombre) || 'cliente'} (WhatsApp ${c.ident})`, ''];
+  c.msgs.forEach(x => {
+    const bot = x.message.type==='ai', raw = textoMsg(x.message), tiene = RE_IMG.test(raw), txt = sinImg(raw), a = bot ? txt.match(RE_ASESOR) : null;
+    const quien = a ? (a[1] ? a[1].trim() : 'Asesor') : bot ? 'Bot' : (c.nombre || 'Cliente');
+    const cuerpo = (a ? txt.replace(RE_ASESOR,'') : txt).trim();
+    lineas.push(`${x.created_at ? '[' + fmtTs(x.created_at) + '] ' : ''}${quien}: ${tiene ? '📷 [Foto]' + (cuerpo ? ' ' : '') : ''}${cuerpo}`);
+  });
+  return lineas.join('\n');
+}
+async function copiarConversacion(){
+  if(!chatCtx || !chatCtx.msgs.length){ toast('No hay mensajes para copiar'); return; }
+  const t = textoConversacion();
+  try{ await navigator.clipboard.writeText(t); toast('Conversación copiada'); }
+  catch(_){
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;left:-9999px;top:0'; document.body.appendChild(ta); ta.select();
+    let ok = false; try{ ok = document.execCommand('copy'); }catch(__){}
+    ta.remove(); toast(ok ? 'Conversación copiada' : 'No se pudo copiar: seleccioná el texto a mano');
+  }
+}
 /* Etapa del contacto desde el chat: la consulta más reciente (prefiere una activa) */
 function consultaDeChat(){
   const ct = chatCtx && contactoDe(chatCtx.ident); if(!ct) return null;
@@ -853,7 +875,7 @@ function chatEtapaHTML(){
 }
 function chatBarraHTML(){
   const c = chatCtx, num = String(c.ident).replace(/\D/g,'');
-  return `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>${chatEtapaHTML()}` : ''; })()}`;
+  return `<div class="seg" role="group" aria-label="Vista del chat"><button type="button" data-ctab="conv" aria-pressed="${chatTab==='conv'}">Conversación</button><button type="button" data-ctab="res" aria-pressed="${chatTab==='res'}">Resumen</button></div><a class="btn wa-btn chico" href="https://wa.me/${num}" target="_blank" rel="noopener">Abrir en WhatsApp</a><button class="btn sec chico" type="button" data-copiar-chat="1">Copiar conversación</button>${(() => { const ct = contactoDe(c.ident); return ct ? `<div class="etqs" style="flex-basis:100%">${chipsEtq(ct)}<button class="btn sec chico" type="button" data-etq="${ct.id}">Etiquetas</button>${esSup() && D.perfiles.length ? `<button class="btn sec chico" type="button" data-nueva-tarea="${ct.id}">+ Tarea</button>` : ''}</div>${chatEtapaHTML()}` : ''; })()}`;
 }
 function pintarBarraChat(){ if(chatCtx) $('#chat-barra').innerHTML = chatBarraHTML(); }
 function renderChat(){
@@ -1736,7 +1758,7 @@ function pintar(){
 
 /* ---------- Eventos ---------- */
 document.addEventListener('change', e => { const cm = e.target.closest?.('[data-chat-mover]'); if(cm){ const v = cm.value; cm.value = ''; if(v) chatMover(v); } });
-document.addEventListener('click', e => { const ce = e.target.closest('[data-chat-etapa]'); if(ce) chatMover(ce.dataset.chatEtapa); });
+document.addEventListener('click', e => { const ce = e.target.closest('[data-chat-etapa]'); if(ce) chatMover(ce.dataset.chatEtapa); if(e.target.closest('[data-copiar-chat]')) copiarConversacion(); });
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if(b){ vista = b.dataset.v; pintar(); } });
 $('#main').addEventListener('change', async e => {
   const el = e.target;
